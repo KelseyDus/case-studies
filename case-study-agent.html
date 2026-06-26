@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Case Study Agent — Oswald Marketing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: #0F0F0F; color: #F0F0F0; min-height: 100vh; }
+  input, textarea, select, button { font-family: 'DM Sans', sans-serif; }
+
+  /* ── Layout ── */
+  #app { display: flex; flex-direction: column; min-height: 100vh; }
+
+  /* ── Header ── */
+  .header {
+    background: #111; border-bottom: 1px solid #1E1E1E;
+    padding: 16px 28px; display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 10;
+  }
+  .header-left { display: flex; align-items: center; gap: 10px; }
+  .header-title { font-size: 16px; font-weight: 600; color: #F0F0F0; }
+  .header-sub   { font-size: 11px; color: #555; margin-top: 1px; letter-spacing: 0.06em; }
+  .header-badge { font-size: 11px; color: #555; letter-spacing: 0.08em; }
+
+  /* ── Tabs ── */
+  .tab-bar { display: flex; border-bottom: 1px solid #1E1E1E; background: #111; overflow-x: auto; }
+  .tab-btn {
+    flex: 0 0 auto; padding: 12px 22px; background: none; border: none;
+    border-bottom: 2px solid transparent; cursor: pointer;
+    color: #555; font-size: 12px; font-weight: 500; white-space: nowrap;
+    transition: color 0.15s;
+  }
+  .tab-btn.active { color: #C8A96E; border-bottom-color: #C8A96E; }
+
+  /* ── Content ── */
+  .content { flex: 1; padding: 28px 28px 60px; max-width: 760px; width: 100%; margin: 0 auto; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ── Step indicator ── */
+  .step-bar { display: flex; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 4px; }
+  .step-dot {
+    width: 24px; height: 24px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 600; flex-shrink: 0;
+    background: #1E1E1E; color: #555; border: 1.5px solid #333;
+    transition: all 0.2s;
+  }
+  .step-dot.active { background: #C8A96E; border-color: #C8A96E; color: #111; }
+  .step-dot.done   { background: #2D6A4F; border-color: #2D6A4F; color: #fff; }
+  .step-label { font-size: 11px; color: #555; margin: 0 6px; }
+  .step-label.active { color: #C8A96E; font-weight: 600; }
+  .step-connector { width: 16px; height: 1px; background: #222; margin-right: 6px; flex-shrink: 0; }
+
+  /* ── Form fields ── */
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #777; margin-bottom: 5px; }
+  .field .hint { font-size: 11px; color: #666; margin-bottom: 5px; font-style: italic; }
+  .field input, .field textarea, .field select {
+    width: 100%; background: #181818; border: 1px solid #2A2A2A; border-radius: 7px;
+    padding: 9px 11px; color: #F0F0F0; font-size: 13px; outline: none;
+    line-height: 1.5; transition: border-color 0.15s;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus { border-color: #C8A96E; }
+  .field textarea { resize: vertical; }
+  .field select { cursor: pointer; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 540px) { .field-row { grid-template-columns: 1fr; } }
+
+  /* ── Buttons ── */
+  .btn {
+    padding: 9px 18px; background: none; border: 1px solid #2E2E2E; border-radius: 7px;
+    color: #888; font-size: 12px; cursor: pointer; font-weight: 500;
+    display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s;
+  }
+  .btn:hover { border-color: #444; color: #AAA; }
+  .btn.primary { background: #C8A96E; border-color: #C8A96E; color: #111; font-weight: 700; }
+  .btn.primary:hover { background: #D4B87E; }
+  .btn.primary:disabled { opacity: 0.55; cursor: not-allowed; }
+  .btn.success { border-color: #2D6A4F; color: #5CB85C; }
+  .btn-row { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; gap: 8px; flex-wrap: wrap; }
+
+  /* ── Output ── */
+  .out-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .out-tab {
+    padding: 6px 14px; border-radius: 20px; border: 1px solid #2A2A2A;
+    cursor: pointer; font-size: 11px; font-weight: 500;
+    background: transparent; color: #666; transition: all 0.15s;
+  }
+  .out-tab.active { background: #C8A96E; border-color: #C8A96E; color: #111; }
+  .output-box { background: #141414; border: 1px solid #222; border-radius: 10px; overflow: hidden; }
+  .output-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: #1A1A1A; border-bottom: 1px solid #222; }
+  .output-label { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: #555; font-weight: 600; }
+  .copy-btn { padding: 4px 12px; background: #222; border: 1px solid #333; border-radius: 5px; color: #888; font-size: 11px; cursor: pointer; transition: all 0.15s; }
+  .copy-btn:hover { background: #2A2A2A; color: #AAA; }
+  .output-body { white-space: pre-wrap; word-break: break-word; font-size: 13px; line-height: 1.8; color: #D0D0D0; margin: 0; padding: 18px 20px; max-height: 340px; overflow-y: auto; }
+  .output-actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+
+  /* ── Error ── */
+  .error-box { margin-top: 12px; padding: 10px 14px; background: #1F0E0E; border: 1px solid #4A1010; border-radius: 8px; color: #FF8080; font-size: 13px; }
+
+  /* ── Tracker ── */
+  .tracker-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; gap: 12px; }
+  .section-title { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; color: #F0F0F0; margin-bottom: 4px; }
+  .section-sub   { font-size: 13px; color: #666; }
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 20px; }
+  @media (max-width: 480px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+  .stat-card { background: #141414; border: 1px solid #1E1E1E; border-radius: 10px; padding: 12px 14px; }
+  .stat-num   { font-size: 22px; font-weight: 600; }
+  .stat-label { font-size: 11px; color: #666; margin-top: 2px; }
+  .add-form { background: #141414; border: 1px solid #222; border-radius: 10px; padding: 18px; margin-bottom: 16px; }
+  .add-form-title { font-size: 13px; font-weight: 600; color: #D0D0D0; margin-bottom: 12px; }
+  .entry-list { display: flex; flex-direction: column; gap: 8px; }
+  .entry-card { background: #141414; border: 1px solid #222; border-radius: 10px; padding: 14px 16px; display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+  .entry-card.done { border-color: #2D6A4F; }
+  .entry-client  { font-size: 14px; font-weight: 500; color: #F0F0F0; }
+  .entry-project { font-size: 12px; color: #666; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 400px; }
+  .entry-meta    { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 600; }
+  .badge.pending     { background: #2A1F0D; color: #E2A84B; border: 1px solid #7A5A1A; }
+  .badge.in-progress { background: #0D1F35; color: #5B9BD5; border: 1px solid #1A4A7A; }
+  .badge.done        { background: #0D2E1A; color: #5CB85C; border: 1px solid #2D6A4F; }
+  .badge.priority    { background: #2A0D0D; color: #E25B5B; border: 1px solid #7A1A1A; }
+  .entry-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .status-select { background: #181818; border: 1px solid #2A2A2A; border-radius: 6px; color: #AAA; font-size: 11px; padding: 4px 8px; height: 28px; cursor: pointer; outline: none; }
+  .icon-btn { width: 28px; height: 28px; border-radius: 6px; border: 1px solid #2A2A2A; background: #1A1A1A; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #555; font-size: 12px; transition: all 0.15s; }
+  .icon-btn:hover { background: #2A0D0D; color: #E25B5B; border-color: #7A1A1A; }
+  .empty-state { text-align: center; padding: 48px 20px; color: #555; }
+  .empty-icon  { font-size: 32px; margin-bottom: 10px; }
+  .empty-title { font-size: 14px; font-weight: 500; color: #888; margin-bottom: 6px; }
+  .spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid rgba(17,17,17,0.3); border-top-color: #111; border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .api-key-bar { background: #1A1400; border-bottom: 1px solid #3A2E00; padding: 10px 28px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .api-key-bar label { font-size: 11px; color: #C8A96E; font-weight: 600; letter-spacing: 0.06em; white-space: nowrap; }
+  .api-key-bar input { flex: 1; min-width: 200px; background: #111; border: 1px solid #3A2E00; border-radius: 6px; padding: 6px 10px; color: #F0F0F0; font-size: 12px; outline: none; font-family: monospace; }
+  .api-key-bar .hint-link { font-size: 11px; color: #7A6030; white-space: nowrap; }
+  .api-key-bar .hint-link a { color: #C8A96E; text-decoration: none; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <span style="font-size:20px">📋</span>
+      <div>
+        <div class="header-title">Case Study Agent</div>
+        <div class="header-sub">Oswald Marketing</div>
+      </div>
+    </div>
+    <div class="header-badge">Powered by Claude</div>
+  </div>
+
+  <!-- API Key bar -->
+  <div class="api-key-bar">
+    <label>ANTHROPIC API KEY</label>
+    <input type="password" id="api-key" placeholder="sk-ant-..." oninput="saveKey(this.value)" />
+    <span class="hint-link">Get one at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></span>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('create')" id="tab-create">✏️  New case study</button>
+    <button class="tab-btn" onclick="switchTab('tracker')" id="tab-tracker">📋  Tracker <span id="tracker-count"></span></button>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- CREATE PANEL -->
+    <div class="panel active" id="panel-create">
+
+      <!-- Form view -->
+      <div id="form-view">
+        <div class="step-bar" id="step-bar"></div>
+        <div id="step-form"></div>
+        <div id="form-error"></div>
+        <div class="btn-row">
+          <button class="btn" id="btn-back" onclick="prevStep()" style="display:none">← Back</button>
+          <div style="flex:1"></div>
+          <button class="btn primary" id="btn-next" onclick="nextOrGenerate()">Continue →</button>
+        </div>
+      </div>
+
+      <!-- Output view -->
+      <div id="output-view" style="display:none">
+        <div style="margin-bottom:20px">
+          <h2 class="section-title" id="output-title"></h2>
+          <p class="section-sub">Your case study is ready. Switch between formats below.</p>
+        </div>
+        <div class="out-tabs">
+          <button class="out-tab active" onclick="setOut('web')"      id="out-web">🌐 Website / Blog</button>
+          <button class="out-tab"        onclick="setOut('linkedin')" id="out-linkedin">💼 LinkedIn</button>
+          <button class="out-tab"        onclick="setOut('email')"    id="out-email">✉️ Email newsletter</button>
+          <button class="out-tab"        onclick="setOut('short')"    id="out-short">⚡ Short social</button>
+        </div>
+        <div class="output-box">
+          <div class="output-header">
+            <span class="output-label" id="out-label">Website / Blog</span>
+            <button class="copy-btn" onclick="copyOut()">Copy</button>
+          </div>
+          <pre class="output-body" id="out-body"></pre>
+        </div>
+        <div class="output-actions">
+          <button class="btn" onclick="downloadAll()">⬇ Download all</button>
+          <button class="btn success" onclick="markDone()">✓ Mark done in tracker</button>
+          <button class="btn primary" onclick="resetCreate()" style="margin-left:auto">+ New case study</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TRACKER PANEL -->
+    <div class="panel" id="panel-tracker">
+      <div class="tracker-top">
+        <div>
+          <h2 class="section-title">Case study tracker</h2>
+          <p class="section-sub">Keep a wishlist of clients you want case studies from.</p>
+        </div>
+        <button class="btn primary" onclick="toggleAdd()">+ Add</button>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-num" id="stat-total" style="color:#F0F0F0">0</div><div class="stat-label">Total</div></div>
+        <div class="stat-card"><div class="stat-num" id="stat-pending" style="color:#E2A84B">0</div><div class="stat-label">Pending</div></div>
+        <div class="stat-card"><div class="stat-num" id="stat-inprog" style="color:#5B9BD5">0</div><div class="stat-label">In progress</div></div>
+        <div class="stat-card"><div class="stat-num" id="stat-done" style="color:#5CB85C">0</div><div class="stat-label">Done</div></div>
+      </div>
+
+      <!-- Add form -->
+      <div class="add-form" id="add-form" style="display:none">
+        <div class="add-form-title">Add to tracker</div>
+        <div class="field-row">
+          <div class="field"><label>Client name</label><input type="text" id="ne-client" placeholder="e.g. Riverview Orthopedics"></div>
+          <div class="field"><label>Assignee</label><input type="text" id="ne-assignee" placeholder="e.g. Sarah"></div>
+        </div>
+        <div class="field"><label>Project / campaign</label><input type="text" id="ne-project" placeholder="e.g. Google Ads Overhaul"></div>
+        <div class="field-row">
+          <div class="field">
+            <label>Status</label>
+            <select id="ne-status">
+              <option value="pending">Pending</option>
+              <option value="in-progress">In progress</option>
+              <option value="done">Done</option>
+            </select>
+          </div>
+          <div class="field" style="display:flex;align-items:flex-end;padding-bottom:2px">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;text-transform:none;font-size:13px;color:#AAA;letter-spacing:normal">
+              <input type="checkbox" id="ne-priority" style="width:auto"> High priority
+            </label>
+          </div>
+        </div>
+        <div class="field"><label>Notes</label><textarea id="ne-notes" rows="2" placeholder="Any context, deadline, or notes…"></textarea></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
+          <button class="btn" onclick="cancelAdd()">Cancel</button>
+          <button class="btn primary" onclick="addEntry()">Add to tracker</button>
+        </div>
+      </div>
+
+      <!-- Entry list -->
+      <div class="entry-list" id="entry-list"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────
+const STEPS = ['Client & project','The challenge','Our solution','Results & impact'];
+const PLATFORMS = {
+  web:      { label: 'Website / Blog',     tab: 'out-web' },
+  linkedin: { label: 'LinkedIn',           tab: 'out-linkedin' },
+  email:    { label: 'Email newsletter',   tab: 'out-email' },
+  short:    { label: 'Short social (X/IG)',tab: 'out-short' },
+};
+const STATUS_LABEL = { pending:'Pending','in-progress':'In progress',done:'Done' };
+
+let state = {
+  step: 0,
+  form: { clientName:'',industry:'',projectName:'',timeline:'',teamMember:'',challenge:'',stakes:'',previousAttempts:'',approach:'',tools:'',differentiator:'',metrics:'',qualitative:'',quote:'',quoteAuthor:'' },
+  loading: false,
+  content: null,
+  activeOut: 'web',
+  entries: [],
+  showAdd: false,
+};
+
+// ── Step form helpers (must be defined before init) ───────────
+function field(label, key, placeholder, multiline, hint) {
+  const hintHtml = hint ? `<div class="hint">${hint}</div>` : '';
+  const val = (state.form[key] || '').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+  const input = multiline
+    ? `<textarea rows="3" placeholder="${placeholder}" oninput="sf('${key}',this.value)">${state.form[key] || ''}</textarea>`
+    : `<input type="text" value="${val}" placeholder="${placeholder}" oninput="sf('${key}',this.value)">`;
+  return `<div class="field"><label>${label}</label>${hintHtml}${input}</div>`;
+}
+function sf(key, val) { state.form[key] = val; }
+function row(...fields) { return `<div class="field-row">${fields.join('')}</div>`; }
+
+const STEP_FORMS = [
+  () => [
+    field('Client name','clientName','e.g. Riverview Orthopedics'),
+    row(field('Industry','industry','e.g. Medical, Auto, Restaurant'), field('Timeline','timeline','e.g. 3 months, Q1 2025')),
+    field('Project / campaign name','projectName','e.g. Website Redesign + SEO Overhaul'),
+    field('Who led this?','teamMember','e.g. Sarah (Design) + Mike (SEO)'),
+  ].join(''),
+  () => [
+    field('What problem was the client facing?','challenge','Describe their situation before working with you…',true),
+    field('What was at stake for them?','stakes','e.g. Losing market share, poor online visibility…',true),
+    field('Had they tried anything before?','previousAttempts','e.g. They tried another agency, DIY social…',true),
+  ].join(''),
+  () => [
+    field('What did you do?','approach','Walk through your strategy and execution…',true),
+    field('Services / tools used','tools','e.g. Media buying, SEO, Google Ads, social content'),
+    field('What made your approach different?','differentiator','What would another agency have missed?',true),
+  ].join(''),
+  () => [
+    field('Key metrics / measurable results','metrics','e.g. 47% traffic increase, 3x leads in 60 days',true,'Be as specific as possible — numbers make case studies powerful.'),
+    field('Qualitative outcomes','qualitative','e.g. Client felt more confident, stronger brand recognition…',true),
+    field('Client quote','quote','What did they say about the experience?',true),
+    field('Who said it?','quoteAuthor','e.g. Dr. Lisa Monroe, Practice Manager'),
+  ].join(''),
+];
+
+// ── Init ──────────────────────────────────────────────────────
+(function init() {
+  try {
+    const saved = localStorage.getItem('oswald_tracker');
+    if (saved) state.entries = JSON.parse(saved);
+    const key = localStorage.getItem('oswald_api_key');
+    if (key) document.getElementById('api-key').value = key;
+  } catch {}
+  renderStepBar();
+  renderStepForm();
+  renderTracker();
+})();
+
+function saveKey(v) { localStorage.setItem('oswald_api_key', v); }
+function getKey()   { return document.getElementById('api-key').value.trim() || localStorage.getItem('oswald_api_key') || ''; }
+function saveTracker() {
+  localStorage.setItem('oswald_tracker', JSON.stringify(state.entries));
+  const c = state.entries.length;
+  document.getElementById('tracker-count').textContent = c > 0 ? `(${c})` : '';
+}
+
+// ── Tab switching ─────────────────────────────────────────────
+function switchTab(tab) {
+  ['create','tracker'].forEach(t => {
+    document.getElementById('panel-' + t).classList.toggle('active', t === tab);
+    document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+  });
+}
+
+// ── Step bar ──────────────────────────────────────────────────
+function renderStepBar() {
+  const bar = document.getElementById('step-bar');
+  bar.innerHTML = STEPS.map((s, i) => {
+    const cls = i < state.step ? 'done' : i === state.step ? 'active' : '';
+    const icon = i < state.step ? '✓' : i + 1;
+    const labelCls = i === state.step ? 'active' : '';
+    const connector = i < STEPS.length - 1 ? '<div class="step-connector"></div>' : '';
+    return `<div class="step-dot ${cls}">${icon}</div><span class="step-label ${labelCls}">${s}</span>${connector}`;
+  }).join('');
+}
+
+function renderStepForm() {
+  document.getElementById('step-form').innerHTML = STEP_FORMS[state.step]();
+  document.getElementById('btn-back').style.display = state.step > 0 ? '' : 'none';
+  const nextBtn = document.getElementById('btn-next');
+  nextBtn.disabled = state.loading;
+  if (state.loading) {
+    nextBtn.innerHTML = '<span class="spinner"></span> Generating…';
+  } else if (state.step === 3) {
+    nextBtn.innerHTML = '✨ Generate case study';
+  } else {
+    nextBtn.innerHTML = 'Continue →';
+  }
+}
+
+function prevStep() {
+  if (state.step > 0) { state.step--; renderStepBar(); renderStepForm(); clearError(); }
+}
+
+function nextOrGenerate() {
+  if (state.step < 3) {
+    state.step++;
+    renderStepBar();
+    renderStepForm();
+    clearError();
+  } else {
+    generate();
+  }
+}
+
+function clearError() { document.getElementById('form-error').innerHTML = ''; }
+function showError(msg) {
+  document.getElementById('form-error').innerHTML = `<div class="error-box">${msg}</div>`;
+}
+
+// ── Generate ──────────────────────────────────────────────────
+async function generate() {
+  const key = getKey();
+  if (!key) { showError('Add your Anthropic API key in the bar at the top before generating.'); return; }
+
+  state.loading = true;
+  renderStepForm();
+  clearError();
+
+  const f = state.form;
+  const prompt = `You are a marketing copywriter for Oswald Marketing, a boutique full-service marketing agency. Generate compelling case study content in 4 formats. Return ONLY valid JSON — no markdown, no backticks, no extra text.
+
+Client: ${f.clientName} (${f.industry})
+Project: ${f.projectName} | Timeline: ${f.timeline} | Team: ${f.teamMember}
+Challenge: ${f.challenge}
+Stakes: ${f.stakes}
+Previous attempts: ${f.previousAttempts}
+Approach: ${f.approach}
+Tools/services: ${f.tools}
+Differentiator: ${f.differentiator}
+Results: ${f.metrics}
+Qualitative: ${f.qualitative}
+Quote: "${f.quote}" — ${f.quoteAuthor}
+
+Return JSON with exactly these keys:
+{
+  "web": "600-800 word website case study with ## headers (The Challenge, Our Approach, The Results). Story-driven, SEO-friendly, includes quote naturally, ends with CTA.",
+  "linkedin": "250-350 word LinkedIn post. Bold hook stat first. Conversational line breaks. 2-3 hashtags at end. First-person agency voice.",
+  "email": "200-300 word email snippet starting with a Subject: line. Warm tone, bullet results, ends with 'Read the full case study →' placeholder.",
+  "short": "Main post under 150 chars, then Variation 1 / 2 / 3. Emoji-forward, metric-led."
+}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const raw = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+    state.content = JSON.parse(raw.replace(/```json|```/g, '').trim());
+    showOutput();
+  } catch (e) {
+    showError('Something went wrong: ' + (e.message || 'check your API key and try again.'));
+  }
+
+  state.loading = false;
+  renderStepForm();
+}
+
+// ── Output ────────────────────────────────────────────────────
+function showOutput() {
+  document.getElementById('form-view').style.display = 'none';
+  document.getElementById('output-view').style.display = '';
+  document.getElementById('output-title').textContent = `${state.form.clientName} — ${state.form.projectName}`;
+  setOut('web');
+}
+
+function setOut(id) {
+  state.activeOut = id;
+  Object.keys(PLATFORMS).forEach(k => {
+    document.getElementById('out-' + k).classList.toggle('active', k === id);
+  });
+  document.getElementById('out-label').textContent = PLATFORMS[id].label;
+  document.getElementById('out-body').textContent = state.content[id];
+}
+
+function copyOut() {
+  const btn = document.querySelector('.copy-btn');
+  navigator.clipboard.writeText(state.content[state.activeOut]).then(() => {
+    btn.textContent = '✓ Copied';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+  });
+}
+
+function downloadAll() {
+  const f = state.form;
+  const c = state.content;
+  const text = [
+    `CASE STUDY: ${f.projectName} — ${f.clientName}`,
+    'Generated by Oswald Marketing Case Study Agent',
+    '='.repeat(60),'',
+    'WEBSITE / BLOG','='.repeat(60), c.web,'',
+    'LINKEDIN','='.repeat(60), c.linkedin,'',
+    'EMAIL NEWSLETTER','='.repeat(60), c.email,'',
+    'SHORT SOCIAL','='.repeat(60), c.short,
+  ].join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type:'text/plain' }));
+  a.download = `case-study-${(f.clientName||'export').toLowerCase().replace(/\s+/g,'-')}.txt`;
+  a.click();
+}
+
+function markDone() {
+  const name = state.form.clientName.toLowerCase();
+  state.entries = state.entries.map(e =>
+    e.client.toLowerCase() === name ? { ...e, status:'done' } : e
+  );
+  saveTracker();
+  renderTracker();
+  const btn = document.querySelector('.btn.success');
+  if (btn) { btn.textContent = '✓ Marked done'; setTimeout(() => btn.textContent = '✓ Mark done in tracker', 2000); }
+}
+
+function resetCreate() {
+  state.form = { clientName:'',industry:'',projectName:'',timeline:'',teamMember:'',challenge:'',stakes:'',previousAttempts:'',approach:'',tools:'',differentiator:'',metrics:'',qualitative:'',quote:'',quoteAuthor:'' };
+  state.content = null;
+  state.step = 0;
+  document.getElementById('form-view').style.display = '';
+  document.getElementById('output-view').style.display = 'none';
+  renderStepBar();
+  renderStepForm();
+  clearError();
+}
+
+// ── Tracker ───────────────────────────────────────────────────
+function toggleAdd() { state.showAdd = !state.showAdd; document.getElementById('add-form').style.display = state.showAdd ? '' : 'none'; }
+function cancelAdd() { state.showAdd = false; document.getElementById('add-form').style.display = 'none'; clearAddForm(); }
+function clearAddForm() {
+  ['ne-client','ne-project','ne-assignee','ne-notes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('ne-status').value = 'pending';
+  document.getElementById('ne-priority').checked = false;
+}
+
+function addEntry() {
+  const client = document.getElementById('ne-client').value.trim();
+  if (!client) return;
+  state.entries.unshift({
+    client,
+    project:  document.getElementById('ne-project').value.trim(),
+    assignee: document.getElementById('ne-assignee').value.trim(),
+    status:   document.getElementById('ne-status').value,
+    priority: document.getElementById('ne-priority').checked,
+    notes:    document.getElementById('ne-notes').value.trim(),
+    addedAt:  new Date().toISOString(),
+  });
+  saveTracker();
+  cancelAdd();
+  renderTracker();
+}
+
+function removeEntry(i) {
+  state.entries.splice(i, 1);
+  saveTracker();
+  renderTracker();
+}
+
+function updateStatus(i, status) {
+  state.entries[i].status = status;
+  saveTracker();
+  renderTracker();
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderTracker() {
+  const e = state.entries;
+  document.getElementById('stat-total').textContent   = e.length;
+  document.getElementById('stat-pending').textContent = e.filter(x=>x.status==='pending').length;
+  document.getElementById('stat-inprog').textContent  = e.filter(x=>x.status==='in-progress').length;
+  document.getElementById('stat-done').textContent    = e.filter(x=>x.status==='done').length;
+
+  const list = document.getElementById('entry-list');
+  if (e.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">Nothing tracked yet</div><div>Add clients you want case studies from and track their progress.</div></div>`;
+    return;
+  }
+
+  list.innerHTML = e.map((entry, i) => `
+    <div class="entry-card ${entry.status==='done'?'done':''}">
+      <div style="flex:1;min-width:0">
+        <div class="entry-client">${esc(entry.client)}</div>
+        <div class="entry-project">${esc(entry.project||'No project specified')}</div>
+        <div class="entry-meta">
+          <span class="badge ${entry.status}">${STATUS_LABEL[entry.status]}</span>
+          ${entry.priority ? '<span class="badge priority">🔥 Priority</span>' : ''}
+          ${entry.assignee ? `<span style="font-size:11px;color:#666">👤 ${esc(entry.assignee)}</span>` : ''}
+          ${entry.notes ? `<span style="font-size:11px;color:#555;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(entry.notes)}</span>` : ''}
+        </div>
+      </div>
+      <div class="entry-actions">
+        <select class="status-select" onchange="updateStatus(${i},this.value)">
+          <option value="pending" ${entry.status==='pending'?'selected':''}>Pending</option>
+          <option value="in-progress" ${entry.status==='in-progress'?'selected':''}>In progress</option>
+          <option value="done" ${entry.status==='done'?'selected':''}>Done</option>
+        </select>
+        <button class="icon-btn" onclick="removeEntry(${i})" title="Remove">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+</script>
+</body>
+</html>
