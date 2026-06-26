@@ -288,7 +288,7 @@ function field(label, key, placeholder, multiline, hint) {
     : `<input type="text" value="${val}" placeholder="${placeholder}" oninput="sf('${key}',this.value)">`;
   return `<div class="field"><label>${label}</label>${hintHtml}${input}</div>`;
 }
-function sf(key, val) { state.form[key] = val; }
+function sf(key, val) { state.form[key] = val; try { localStorage.setItem("oswald_draft", JSON.stringify(state.form)); } catch {} }
 function row(...fields) { return `<div class="field-row">${fields.join('')}</div>`; }
 
 const STEP_FORMS = [
@@ -321,8 +321,14 @@ const STEP_FORMS = [
   try {
     const saved = localStorage.getItem('oswald_tracker');
     if (saved) state.entries = JSON.parse(saved);
-    const key = localStorage.getItem('oswald_api_key');
-    if (key) document.getElementById('api-key').value = key;
+    const draft = localStorage.getItem('oswald_draft');
+    if (draft) {
+      state.form = JSON.parse(draft);
+      const checkFields = ['teamMember','previousAttempts','differentiator','quoteAuthor'];
+      for (let i = 3; i >= 0; i--) {
+        if (state.form[checkFields[i]]) { state.step = i; break; }
+      }
+    }
   } catch {}
   renderStepBar();
   renderStepForm();
@@ -424,7 +430,7 @@ Return JSON with exactly these keys:
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
+        max_tokens: 4000,
         messages: [{ role: 'user', content: prompt }],
       }),
     });
@@ -433,6 +439,7 @@ Return JSON with exactly these keys:
     const raw = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
     state.content = JSON.parse(raw.replace(/```json|```/g, '').trim());
     showOutput();
+    try { localStorage.removeItem("oswald_draft"); } catch {}
   } catch (e) {
     showError('Something went wrong: ' + (e.message || 'please try again.'));
   }
@@ -504,6 +511,7 @@ function resetCreate() {
   renderStepBar();
   renderStepForm();
   clearError();
+  try { localStorage.removeItem("oswald_draft"); } catch {}
 }
 
 // ── Tracker ───────────────────────────────────────────────────
