@@ -134,11 +134,7 @@
   .empty-title { font-size: 14px; font-weight: 500; color: #888; margin-bottom: 6px; }
   .spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid rgba(17,17,17,0.3); border-top-color: #111; border-radius: 50%; animation: spin 0.7s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .api-key-bar { background: #1A1400; border-bottom: 1px solid #3A2E00; padding: 10px 28px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-  .api-key-bar label { font-size: 11px; color: #C8A96E; font-weight: 600; letter-spacing: 0.06em; white-space: nowrap; }
-  .api-key-bar input { flex: 1; min-width: 200px; background: #111; border: 1px solid #3A2E00; border-radius: 6px; padding: 6px 10px; color: #F0F0F0; font-size: 12px; outline: none; font-family: monospace; }
-  .api-key-bar .hint-link { font-size: 11px; color: #7A6030; white-space: nowrap; }
-  .api-key-bar .hint-link a { color: #C8A96E; text-decoration: none; }
+  /* removed api-key-bar — key is now server-side */
 </style>
 </head>
 <body>
@@ -154,13 +150,6 @@
       </div>
     </div>
     <div class="header-badge">Powered by Claude</div>
-  </div>
-
-  <!-- API Key bar -->
-  <div class="api-key-bar">
-    <label>ANTHROPIC API KEY</label>
-    <input type="password" id="api-key" placeholder="sk-ant-..." oninput="saveKey(this.value)" />
-    <span class="hint-link">Get one at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></span>
   </div>
 
   <!-- Tab bar -->
@@ -340,8 +329,6 @@ const STEP_FORMS = [
   renderTracker();
 })();
 
-function saveKey(v) { localStorage.setItem('oswald_api_key', v); }
-function getKey()   { return document.getElementById('api-key').value.trim() || localStorage.getItem('oswald_api_key') || ''; }
 function saveTracker() {
   localStorage.setItem('oswald_tracker', JSON.stringify(state.entries));
   const c = state.entries.length;
@@ -404,9 +391,6 @@ function showError(msg) {
 
 // ── Generate ──────────────────────────────────────────────────
 async function generate() {
-  const key = getKey();
-  if (!key) { showError('Add your Anthropic API key in the bar at the top before generating.'); return; }
-
   state.loading = true;
   renderStepForm();
   clearError();
@@ -435,7 +419,7 @@ Return JSON with exactly these keys:
 }`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -445,12 +429,12 @@ Return JSON with exactly these keys:
       }),
     });
     const data = await res.json();
-    if (data.error) throw new Error(data.error.message);
+    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
     const raw = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
     state.content = JSON.parse(raw.replace(/```json|```/g, '').trim());
     showOutput();
   } catch (e) {
-    showError('Something went wrong: ' + (e.message || 'check your API key and try again.'));
+    showError('Something went wrong: ' + (e.message || 'please try again.'));
   }
 
   state.loading = false;
